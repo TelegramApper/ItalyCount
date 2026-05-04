@@ -19,7 +19,7 @@ ALLOWED_PLACES = {
     ITALIAN_PLACE,
 }
 
-is_busy = False
+command_lock = asyncio.Lock()
 
 
 async def send_countdown(context: ContextTypes.DEFAULT_TYPE, chat_id: int, topic_id: int, title_text: str):
@@ -38,7 +38,7 @@ async def send_countdown(context: ContextTypes.DEFAULT_TYPE, chat_id: int, topic
         message_thread_id=topic_id
     )
     sent_messages.append(msg3)
-    await asyncio.sleep(1)
+    await asyncio.sleep(1.2)
 
     msg2 = await context.bot.send_message(
         chat_id=chat_id,
@@ -46,7 +46,7 @@ async def send_countdown(context: ContextTypes.DEFAULT_TYPE, chat_id: int, topic
         message_thread_id=topic_id
     )
     sent_messages.append(msg2)
-    await asyncio.sleep(1)
+    await asyncio.sleep(1.2)
 
     msg1 = await context.bot.send_message(
         chat_id=chat_id,
@@ -54,7 +54,7 @@ async def send_countdown(context: ContextTypes.DEFAULT_TYPE, chat_id: int, topic
         message_thread_id=topic_id
     )
     sent_messages.append(msg1)
-    await asyncio.sleep(1)
+    await asyncio.sleep(1.2)
 
     msg_go = await context.bot.send_message(
         chat_id=chat_id,
@@ -73,8 +73,6 @@ async def send_countdown(context: ContextTypes.DEFAULT_TYPE, chat_id: int, topic
 
 
 async def s_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    global is_busy
-
     message = update.effective_message
     source_chat_id = update.effective_chat.id
     source_topic_id = message.message_thread_id
@@ -83,12 +81,10 @@ async def s_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if source_place not in ALLOWED_PLACES:
         return
 
-    if is_busy:
+    if command_lock.locked():
         return
 
-    is_busy = True
-
-    try:
+    async with command_lock:
         if source_place == ARABIC_PLACE:
             title_a = "Count"
             title_b = "Arabic Group Searching - Conto"
@@ -103,17 +99,19 @@ async def s_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         await asyncio.sleep(10)
 
-    finally:
-        is_busy = False
-
 
 def main():
     if not BOT_TOKEN:
         raise ValueError("BOT_TOKEN environment variable is not set")
 
-    app = ApplicationBuilder().token(BOT_TOKEN).build()
+    app = (
+        ApplicationBuilder()
+        .token(BOT_TOKEN)
+        .build()
+    )
+
     app.add_handler(CommandHandler("s", s_command))
-    app.run_polling()
+    app.run_polling(drop_pending_updates=True)
 
 
 if __name__ == "__main__":
