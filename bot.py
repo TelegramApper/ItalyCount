@@ -67,7 +67,10 @@ async def send_countdown(context: ContextTypes.DEFAULT_TYPE, chat_id: int, topic
 
     for msg in sent_messages:
         try:
-            await context.bot.delete_message(chat_id=chat_id, message_id=msg.message_id)
+            await context.bot.delete_message(
+                chat_id=chat_id,
+                message_id=msg.message_id
+            )
         except Exception:
             pass
 
@@ -107,6 +110,7 @@ def main():
     app = (
         ApplicationBuilder()
         .token(BOT_TOKEN)
+        .concurrent_updates(True)
         .build()
     )
 
